@@ -101,7 +101,7 @@ A key debugging insight was that the initial reranker underperformed because tra
     {"item_id": "N23446", "score": 1.5115}
   ]
 }
-
+```
 
 ----
 
@@ -166,7 +166,3 @@ curl "http://127.0.0.1:8000/recommend?dataset=mind&user_id=123&k=10"
 ```
 
 ---
-
-## CV bullet (fill measured values)
-
-Built a production style two stage recommender for a homepage feed using Microsoft MIND and RetailRocket. Implemented two tower embedding retrieval with FAISS (top [200] candidates) and a LightGBM reranker, improving offline NDCG@10 by [+X%] vs a popularity baseline. Automated training and indexing via Airflow and Docker and served recommendations through a FastAPI endpoint.
