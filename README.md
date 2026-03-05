@@ -3,109 +3,95 @@
 This project implements a production-style two-stage recommender system for editorial homepage recommendations using the Microsoft MIND Small dataset.
 
 The system is built in two stages:
+1. **Candidate generation** with a two-tower embedding model in PyTorch.
+2. **Candidate reranking** with a LightGBM LambdaRank model.
 
-Candidate generation with a two-tower embedding model in PyTorch
+For fast retrieval, item embeddings are indexed with **FAISS**. Recommendations are exposed through a **FastAPI** endpoint.
 
-Candidate reranking with a LightGBM LambdaRank model
+### 🎯 Project Goal
+The goal was to build a realistic recommender pipeline similar to modern homepage feed systems, where:
+* A lightweight retrieval model first generates a shortlist of candidates.
+* A second ranking model then reorders those candidates for better relevance.
 
-For fast retrieval, item embeddings are indexed with FAISS. Recommendations are exposed through a FastAPI endpoint.
+### 📊 Dataset
+I used **Microsoft MIND Small**, focusing on implicit feedback:
+* User click behavior and article impressions.
+* Held-out next-click style evaluation.
 
-### Project goal
+---
 
-The goal of the project was to build a realistic recommender pipeline similar to modern homepage feed systems, where:
+### 🏗️ Architecture
 
-a lightweight retrieval model first generates a shortlist of candidates
+#### Stage 1: Candidate Generation
+A two-tower model learns user and item embeddings. Candidates are retrieved by nearest-neighbor search using **FAISS**.
 
-a second ranking model then reorders those candidates for better relevance
+#### Stage 2: Reranking
+A **LightGBM LambdaRank** model reranks candidates using features like:
+* Retrieval score from the two-tower model.
+* Article popularity and 
+* Candidate rank position
+* Offline evaluation
 
-This setup reflects how large-scale recommender systems are often designed in practice, especially when ranking across large candidate spaces.
 
-## Dataset
+---
 
-I used Microsoft MIND Small, a public dataset for news recommendation research.
+### 📈 Results
+The two-stage recommender outperformed the popularity baseline by **31.1% relative NDCG@10**. The recommender was evaluated against a popularity baseline. Popularity baseline means: recommend the same globally popular items to every user
 
-The project focuses on implicit feedback:
+> **Stored in:** `artifacts/mind/final_results_20k.md`
 
-user click behavior
+### ⚙️ Experiment Setup
+* **Dataset:** Microsoft MIND Small
+* **Max users:** 20,000
+* **Two-tower model:** PyTorch
+* **Retrieval:** FAISS exact inner-product search
+* **Reranker:** LightGBM LambdaRank
+* **Negative samples:** 50
+* **Embedding dimension:** 64
+* **Top candidates:** 500
+* **Evaluation metrics:** `NDCG@10`, `Recall@10`, `MAP@10`
 
-article impressions
 
-held-out next-click style evaluation
+| Model | NDCG@10 | Recall@10 | MAP@10 |
+| :--- | :--- | :--- | :--- |
+| Popularity baseline | 0.02023 | 0.04895 | 0.01191 |
+| **Two-stage recommender** | **0.02652** | **0.05776** | **0.01726** |
+| **Relative lift** | **+31.1%** | **+18.0%** | **+45.0%** |
 
-Architecture
-Stage 1: Candidate generation
 
-A two-tower model learns:
+---
 
-user embeddings
+### 🛠️ Tech Stack
+* **Languages & Data:** Python, Pandas
+* **ML Frameworks:** PyTorch, LightGBM
+* **Vector Search:** FAISS
+* **Deployment:** FastAPI, Docker, Airflow template
 
-item embeddings
+---
 
-Candidate articles are retrieved by nearest-neighbor search over item embeddings using FAISS.
-
-Stage 2: Reranking
-
-A LightGBM LambdaRank model reranks retrieved candidates using features such as:
-
-retrieval score from the two-tower model
-
-article popularity
-
-candidate rank position
-
-Offline evaluation
-
-The recommender was evaluated against a popularity baseline.
-
-Popularity baseline means:
-
-recommend the same globally popular items to every user
-
-Main metric:
-
-NDCG@10
-
-Additional metrics:
-
-Recall@10
-
-MAP@10
-
-Best result
-
-On the strongest run, the two-stage recommender outperformed the popularity baseline by 31.1% relative NDCG@10.
-
-Results
-Model	NDCG@10	Recall@10	MAP@10
-Popularity baseline	0.02023	0.04895	0.01191
-Two-stage recommender	0.02652	0.05776	0.01726
-Relative lift	+31.1%	+18.0%	+45.0%
-What I learned
-
+### What I learned
 This project helped me understand several core recommender system concepts:
-
-why strong baselines matter
-
-why candidate retrieval quality is critical
-
-why offline ranking metrics can move differently from recall metrics
-
-how train/evaluation feature mismatch can degrade performance
-
-how negative sampling affects embedding quality
+* Why strong baselines matter
+* Why candidate retrieval quality is critical
+* Why offline ranking metrics can move differently from recall metrics
+* How train/evaluation feature mismatch can degrade performance
+* How negative sampling affects embedding quality
 
 A key debugging insight was that the initial reranker underperformed because training and evaluation features were inconsistent. After aligning features, switching retrieval to exact search for the smaller item set, and increasing negative sampling, the model achieved a strong positive lift over baseline.
 
-API example
+---
 
-After training, recommendations can be served through FastAPI.
+### 🔮 Next Steps
+* Add **user-category affinity** features.
+* Incorporate **freshness and recency** features.
+* Validate the pipeline on **RetailRocket** for ecommerce.
 
-Example endpoint:
+---
 
-GET /recommend?dataset=mind&user_id=U10022&k=10
+### 🚀 API Example
+**Endpoint:** `GET /recommend?dataset=mind&user_id=U10022&k=10`
 
-Example response:
-
+```json
 {
   "dataset": "mind",
   "user_id": "U10022",
@@ -115,77 +101,9 @@ Example response:
     {"item_id": "N23446", "score": 1.5115}
   ]
 }
-Tech stack
-
-Python
-
-PyTorch
-
-FAISS
-
-LightGBM
-
-Pandas
-
-FastAPI
-
-Docker
-
-Airflow template
-
-Next steps
-
-Planned improvements:
-
-add user-category affinity features
-
-add freshness and recency features
-
-run larger experiments on MIND
-
-validate the same pipeline on RetailRocket for ecommerce recommendation
-
-Save final metrics clearly
-
-Create a simple text file so you always know which run belongs to which result.
-
-Make a file like artifacts/mind/final_results_20k.md with this content:
-
-Final Results - MIND Small
-Experiment setup
-
-Dataset: Microsoft MIND Small
-
-Max users: 20000
-
-Two-tower model: PyTorch
-
-Retrieval: FAISS exact inner-product search
-
-Reranker: LightGBM LambdaRank
-
-Negative samples: 50
-
-Embedding dimension: 64
-
-Top candidates: 500
-
-Evaluation metric: NDCG@10, Recall@10, MAP@10
-
-Metrics
-Model	NDCG@10	Recall@10	MAP@10
-Popularity baseline	0.0202306399	0.0489477577	0.0119065762
-Two-stage recommender	0.0265156036	0.0577556646	0.0172610643
-Relative lift
-
-NDCG@10: +31.1%
-
-Recall@10: +18.0%
-
-MAP@10: +45.0%
 
 
-#?????????????????????????????????????????????????????????????????????????????????????????????????????????????
+----
 
 This repo is a runnable template for a two stage recommender:
 1) Candidate generation with a two tower model plus FAISS ANN retrieval  
