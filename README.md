@@ -147,6 +147,30 @@ python -m src.cli train-reranker --dataset mind
 python -m src.cli eval-offline --dataset mind --k 10
 ```
 
+Running experiments
+```
+EXP=mind_50k_min5_e10_neg50
+EXP_DIR=artifacts/mind/experiments/$EXP
+mkdir -p "$EXP_DIR"
+
+# snapshot config before run
+cp configs/mind.yaml "$EXP_DIR/mind.yaml"
+
+# run pipeline
+python -m src.cli prepare-data --dataset mind --max-users 50000
+python -m src.cli train-two-tower --dataset mind --epochs 10
+python -m src.cli build-index --dataset mind
+python -m src.cli train-reranker --dataset mind
+python -m src.cli eval-offline --dataset mind --k 10 --save-md "$EXP_DIR/results.md"
+
+# append the exact config used into results.md for zero ambiguity
+echo -e "\n## Config used\n\n\`\`\`yaml" >> "$EXP_DIR/results.md"
+cat "$EXP_DIR/mind.yaml" >> "$EXP_DIR/results.md"
+echo -e "\n\`\`\`\n" >> "$EXP_DIR/results.md"
+
+echo "Saved results to $EXP_DIR/results.md"
+```
+
 RetailRocket:
 ```bash
 python -m src.cli prepare-data --dataset retailrocket --max-users 200000
