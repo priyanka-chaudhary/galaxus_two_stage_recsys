@@ -181,6 +181,49 @@ python -m src.cli eval-offline --dataset retailrocket --k 10
 ```
 
 ---
+## Experiment log
+
+This section tracks experiments so results are reproducible and comparable.
+Important: changing `min_user_interactions` changes the evaluation cohort. That can change the strength of the popularity baseline, so comparisons across different cohort filters should be done carefully.
+
+All experiment outputs are saved under `artifacts/mind/experiments/<experiment_id>/` and include:
+- `results.md` (metrics)
+- `mind.yaml` (config snapshot)
+- `data_stats.txt` (users, items, interaction counts)
+
+### MIND Small experiments (max_users = 50k)
+
+| Experiment ID | Cohort filter | Epochs | Neg samples | Users | Items | Train interactions | Test interactions |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `mind_50k_min5_e10_neg50` | min_user_interactions = 5 | 10 | 50 | 16,159 | 6,700 | 149,083 | 16,159 |
+| `mind_50k_min10_e20_neg100` | min_user_interactions = 10 | 20 | 100 | 5,836 | 5,670 | 92,693 | 5,836 |
+
+### Metrics summary (k = 10)
+
+| Experiment ID | Baseline NDCG@10 | Two-stage NDCG@10 | Lift | Baseline Recall@10 | Two-stage Recall@10 | Baseline MAP@10 | Two-stage MAP@10 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `mind_50k_min5_e10_neg50` | 0.01429 | 0.02745 | +92.1% | 0.03558 | 0.05972 | 0.00821 | 0.01785 |
+| `mind_50k_min10_e20_neg100` | 0.00694 | 0.03071 | +342.6% | 0.01885 | 0.06631 | 0.00358 | 0.02013 |
+
+Notes:
+- The large relative lifts at higher `min_user_interactions` happen partly because the baseline becomes weaker on a “high-activity user” cohort. Absolute metrics are often more stable for comparison.
+- Full outputs and configs:
+  - `artifacts/mind/experiments/mind_50k_min5_e10_neg50/results.md`
+  - `artifacts/mind/experiments/mind_50k_min10_e20_neg100/results.md`
+---
+
+## Baselines
+
+Current:
+1) Popularity baseline  
+Recommends the globally most popular items from the training set to every user.
+
+Planned additions:
+A) Two-tower retrieval baseline (no reranker)  
+Ranks candidates purely by the two-tower / FAISS retrieval score. This isolates the incremental value of the LightGBM reranker.
+
+B) Category-popularity baseline (light personalization)  
+For each user, infer their preferred category from training clicks, then recommend the most popular items within that category. This is a stronger baseline than global popularity, especially for high-activity users.
 
 ## 3) Serve recommendations
 
