@@ -58,6 +58,61 @@ The two-stage recommender outperformed the popularity baseline by **31.1% relati
 | **Two-stage recommender** | **0.02652** | **0.05776** | **0.01726** |
 | **Relative lift** | **+31.1%** | **+18.0%** | **+45.0%** |
 
+### Baselines
+
+To make the evaluation more realistic, I compare the two-stage model against three baselines:
+
+1. **Global popularity baseline**
+   - Recommends the same globally most clicked items from the training set to every user.
+
+2. **Two-tower retrieval baseline (Baseline A)**
+   - Uses the two-tower model only.
+   - Retrieves `top_candidates` items with FAISS and ranks them directly by the retrieval score.
+   - Purpose: isolates the incremental value of the LightGBM reranker.
+
+3. **Category-popularity baseline (Baseline B)**
+   - Light personalization using content metadata.
+   - For each user, infer the user’s top category from training clicks.
+   - Recommend the most popular items within that category. If fewer than K are available, fill the remaining slots with global popular items.
+   - Purpose: a stronger baseline than global popularity, especially for active users.
+
+### Best run (official)
+
+This is the current strongest run. Results are stored in:
+`artifacts/mind/experiments/mind_50k_min10_e20_neg100/results_with_baselines.md`
+
+**Experiment setup**
+- Dataset: Microsoft MIND Small
+- Max users: 50,000
+- Cohort filter: `min_user_interactions = 10`
+- Two-tower training: `epochs = 20`, `negative_samples = 100`
+- Retrieval: FAISS exact inner product search (IndexFlatIP)
+- Reranker: LightGBM LambdaRank
+- Candidates: `top_candidates = 500`
+- Evaluation metrics: `NDCG@10`, `Recall@10`, `MAP@10`
+
+**Data stats (after filtering)**
+- Users: 5,836
+- Items: 5,670
+- Train interactions: 92,693
+- Test interactions: 5,836
+
+**Results (k = 10)**
+
+| Model | NDCG@10 | Recall@10 | MAP@10 |
+|---|---:|---:|---:|
+| Global popularity baseline | 0.00694 | 0.01885 | 0.00358 |
+| Two-tower retrieval baseline | 0.01619 | 0.03547 | 0.01044 |
+| Category-popularity baseline | 0.02302 | 0.04678 | 0.01616 |
+| Two-stage (reranked) | 0.03071 | 0.06631 | 0.02013 |
+
+**NDCG@10 lift**
+- vs global popularity: +342.6%
+- vs two-tower retrieval: +89.7%
+- vs category-popularity: +33.4%
+
+Note: raising `min_user_interactions` changes the evaluation cohort. Global popularity becomes weaker on high activity users because their clicks are less aligned with globally popular items. That is why category-popularity and two-tower retrieval are important baselines here.
+
 
 ---
 
